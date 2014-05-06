@@ -1,0 +1,26 @@
+#set term
+defbce on
+#term xterm-256color
+#attrcolo b "^["
+#termcapinfo xterm-256color
+
+#using UTF-8
+defutf8 on
+defencoding utf8
+encoding utf-8 utf-8
+
+startup_message off
+defscrollback 2000
+
+shelltitle "$ |bash"
+#hardstatus alwayslastline "%w"
+#hardstatus off
+
+escape ^z^z
+#hardstatus alwayslastline "[%02c] %-w%{=b bw}%n %t%{-}%+w"
+#hardstatus alwayslastline "%{= bc}%H[%n]: %{= bg}%Y/%m/%d (%D) %c [%Lw]"
+#hardstatus alwayslastline "%{= 9r}%H[%n]: %{= bg}%Y/%m/%d (%D) %c [%Lw]"
+#hardstatus alwayslastline "%{rk}%H %{gk}%c %{yk}%M%d %{wk}%?%-Lw%?%{bw}%n*%f %t%?(%u)%?%{wk}%?%+Lw%?"
+#hardstatus alwayslastline "%{rk}%H %{yk}[%Y/%m/%d %{gk}%c] %{wk}%?%-Lw%?%{bw}%n*%f %t%?(%u)%?%{wk}%?%+Lw%?"
+#hardstatus alwayslastline "%{= 9r}%H %{= 9g}[%Y/%m/%d %c] %{= 9w}%?%-Lw%?%{= 9b}%n*%f %t%?(%u)%?%{= 9w}%?%+Lw%?"
+hardstatus alwayslastline "%{= 9r}%H %{= 9g}[%Y/%m/%d %c] %{= 9w}%?%-Lw%?%{= 9b}%n*%f %t%?(%u)%?%{= 9w}%?%+Lw%?"
