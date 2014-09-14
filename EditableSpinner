@@ -1,0 +1,199 @@
+package com.example.editablespinner;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v7.app.ActionBarActivity;
+import android.text.TextUtils;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.Toast;
+
+public class MainActivity extends ActionBarActivity {
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+
+		if (savedInstanceState == null) {
+			getSupportFragmentManager().beginTransaction()
+					.add(R.id.container, new PlaceholderFragment()).commit();
+		}
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle action bar item clicks here. The action bar will
+		// automatically handle clicks on the Home/Up button, so long
+		// as you specify a parent activity in AndroidManifest.xml.
+		int id = item.getItemId();
+		if (id == R.id.action_settings) {
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+
+	/**
+	 * A placeholder fragment containing a simple view.
+	 */
+	public static class PlaceholderFragment extends Fragment {
+
+		private Spinner mSpinner = null;
+
+		private enum ItemType {
+			PRESET,
+			CUSTOM;
+		}
+
+		private static class SpinnerItem {
+			ItemType mItemType;
+			String mCaption;
+
+			public SpinnerItem(ItemType itemType, String caption) {
+				mItemType = itemType;
+				mCaption = caption;
+			}
+
+			@Override
+			public String toString() {
+				return mCaption;
+			}
+			
+		}
+
+		private List<SpinnerItem> mSpinnerItems = null;
+		private int mLastPosition = -1;
+
+		private AdapterView.OnItemSelectedListener mSpinnerSelectedListenr = 
+				new AdapterView.OnItemSelectedListener() {
+
+					@Override
+					public void onItemSelected(AdapterView<?> parent,
+							View view, int position, long id) {
+						SpinnerItem spinnerItem = mSpinnerItems.get(position);
+						if (spinnerItem.mItemType.equals(ItemType.CUSTOM)) {
+							// show Dialog.
+							showInputDialog(PlaceholderFragment.this.getActivity());
+
+						} else {
+							// Remember last selected posiion.
+							mLastPosition = position;
+						}
+						
+					}
+
+					@Override
+					public void onNothingSelected(AdapterView<?> parent) {
+						// TODO Auto-generated method stub
+						
+					}
+			
+		};
+				
+		/******************************************************************/
+
+		public PlaceholderFragment() {
+		}
+
+		@Override
+		public View onCreateView(LayoutInflater inflater, ViewGroup container,
+				Bundle savedInstanceState) {
+			View rootView = inflater.inflate(R.layout.fragment_main, container,
+					false);
+			return rootView;
+		}
+
+		@Override
+		public void onViewCreated(View view, Bundle savedInstanceState) {
+			// TODO Auto-generated method stub
+			super.onViewCreated(view, savedInstanceState);
+			initSpinner(view);
+		}
+
+		private void initSpinner(View view) {
+			mSpinner = (Spinner) view.findViewById(R.id.spinner1);
+
+			mSpinnerItems = new ArrayList<SpinnerItem>();
+			mSpinnerItems.add(new SpinnerItem(ItemType.PRESET, "50"));
+			mSpinnerItems.add(new SpinnerItem(ItemType.PRESET, "100"));
+			mSpinnerItems.add(new SpinnerItem(ItemType.CUSTOM, "Other"));
+			
+			mSpinner.setAdapter(new ArrayAdapter<SpinnerItem>(this.getActivity(), R.layout.rowdata, mSpinnerItems));
+
+			mSpinner.setOnItemSelectedListener(mSpinnerSelectedListenr);
+		}
+
+		private void showInputDialog(final Context context) {
+			AlertDialog.Builder builder = new AlertDialog.Builder(context);
+			builder.setTitle("input new item");
+
+			final EditText input = new EditText(context);
+
+			input.setText("50");
+			builder.setView(input);
+
+			builder.setPositiveButton("OK",
+					new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int id) {
+							// Get input item.
+							String newItem = input.getEditableText().toString();
+							
+							// Input error.
+							if (TextUtils.isEmpty(newItem)) {
+								Toast.makeText(context, "Input param is invalid...", Toast.LENGTH_SHORT).show();
+								mSpinner.setSelection(mLastPosition);
+								return;
+							}
+
+							// Check if new item has already added.
+							for(int position = 0; position < mSpinnerItems.size(); position++) {
+								SpinnerItem item = mSpinnerItems.get(position);
+								if (item != null) {
+									if (newItem.equals(item.mCaption)) {
+										mSpinner.setSelection(position);
+										return;
+									}
+								}
+							}
+								
+							// Add new item if not exited...
+							mSpinnerItems.add(0, new SpinnerItem(ItemType.PRESET, newItem));
+							mSpinner.setSelection(0);
+						}
+					});
+
+			builder.setNegativeButton("Cancel",
+					new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int id) {
+							mSpinner.setSelection(mLastPosition);
+						}
+					});
+
+			builder.create();
+			builder.show();
+		}
+
+	}
+
+}
