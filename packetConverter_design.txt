@@ -1,0 +1,156 @@
+
+パケットデータフォーマット
+[id, length, data]
+[id, length, data]
+[id, length, data]
+・・・
+
+パケットデータ種目enum定義
+private static final int FORMAT_ID_RACEINFO_LESSON = 1;
+private static final int FORMAT_ID_RACEINFO_FREERUN = 2;
+private static final int FORMAT_ID_RACEINFO_CLUB = 3;
+
+private static final int DATA_TYPE_INTEGER = 1;
+private static final int DATA_TYPE_STRING = 2;
+
+enum PacketType {
+	// 定義名(id, データ型) 
+	FORMAT_ID(0, DATA_TYPE_INTEGER), // レース情報以外をパケット通信する際に使用する
+	RACE_TYPE(1, DATA_TYPE_INTEGER),
+	LESSON_DATE(2, DATA_TYPE_INTEGER),
+	TITLE(3, DATA_TYPE_STRING),
+・・・
+}
+
+-------------------------------------------------------------------------
+使用例) byte配列に変換
+PacketConverter converter = new PacketConverter(FORMAT_ID_RACEINFO_LESSON);
+converter.put(RACE_TYPE, 1);
+converter.put(LESSON_DATE, 20141205);
+converter.put(TITLE, "タイトル");
+byte[] bytes = converter.getBytes();
+
+使用例) byte配列から復元
+PacketConverter converter = new PacketConverter(bytes);
+int raceType = converter.get(RACE_TYPE);
+int lessonDate = converter.get(LESSON_DATE);
+String title = converter.get(TITLE);
+
+-------------------------------------------------------------------------
+・コンストラクタ
+// byte配列に変換時に使用
+public PacketConverter(int formatId)
+
+// byte配列から復元時に使用
+public PacketConverter(bytes[] bytes)
+
+-------------------------------------------------------------------------
+・パケットデータに追加
+public boolean put(PacketType packetType, int value)
+public boolean put(PacketType packetType, String value)
+
+・パケットデータをbyte配列に変換
+public byte[] getBytes()
+
+-------------------------------------------------------------------------
+・byte配列からパケットデータを復元
+public boolean deconvert()
+
+・パケットデータから取得
+public int get(PacketType packetType)
+
+-------------------------------------------------------------------------
+・パケットデータ保持
+LinkedHashMap<Integer, List<Object>> mPacketDataMap;
+Key:id(パケットデータID)
+value:データのリスト(目標設定等で複数保持するため)
+
+-------------------------------------------------------------------------
+・パケットデータ生成
+
+■レース情報
+public static class RaceInfo {
+	ModellLesson lesson,
+	ModelEvent event, 
+	List<ModelTargetSetting> targetSettings,
+	List<ModelMiddleTimeInfo> middleTimeInfos
+}
+
+・レース情報のフォーマットであるかをチェック
+private boolean isRaceInfoFormat(byte[] bytes) {
+	boolean ret = false;
+
+	PacketConverter converter = new PacketConverter(bytes);
+	int formatId = converter.get(FORMAT_ID);
+
+	// 授業・フリーラン・部活・・・
+	if (formatId == FORMAT_ID_RACEINFO_LESSON) {
+		ret = true;
+	} else if (formatId == FORMAT_ID_RACEINFO_FREERUN) {
+		ret = true;
+	} else if (formatId == FORMAT_ID_RACEINFO_CLUB) {
+		ret = true;
+	}
+	
+	return ret;
+}
+
+・レース情報をbyte配列に変換
+private byte[] convertRaceInfoToBytes(RaceInfo raceInfo)
+{
+	// レース種別
+	int raceType = raceInfo.lesson.raceType;
+	
+	// レース情報生成
+	RaceInfoFactory factory = null;
+
+	// 授業・フリーラン・部活・・・
+	if (raceType == RACE_TYPE_LESSON) {
+		factory = new LessonRaceInfoFactory(raceInfo);
+	} else if (raceType == RACE_TYPE_FREERUN) {
+		factory = new FreerunRaceInfoFactory(raceInfo);
+	} else if (raceType == RACE_TYPE_CLUB) {
+		factory = new ClubRaceInfoFactory(raceInfo);
+	}
+	byte[] bytes = factory.getBytes();
+	
+	return bytes;
+}
+
+・レース情報復元
+private RaceInfo getRaceInfoByBytes(byte[] bytes)
+{
+	// レース情報
+	RaceInfo raceInfo = null;
+
+	// レース情報生成
+	RaceInfoFactory factory = null;
+	
+	// レース種別毎に復元
+	PacketConverter converter = new PacketConverter(bytes);
+//	int raceType = converter.get(RACE_TYPE);
+	int formatId = converter.get(FORMAT_ID);
+
+	// 授業・フリーラン・部活・・・
+/*
+	if (raceType == RACE_TYPE_LESSON) {
+		factory = new LessonRaceInfoFactory();
+	} else if (raceType == RACE_TYPE_FREERUN) {
+		factory = new FreerunRaceInfoFactory();
+	} else if (raceType == RACE_TYPE_CLUB) {
+		factory = new ClubRaceInfoFactory();
+	}
+*/
+	if (formatId == FORMAT_ID_RACEINFO_LESSON) {
+		factory = new LessonRaceInfoFactory();
+	} else if (raceType == FORMAT_ID_RACEINFO_FREERUN) {
+		formatId = new FreerunRaceInfoFactory();
+	} else if (raceType == FORMAT_ID_RACEINFO_CLUB) {
+		formatId = new ClubRaceInfoFactory();
+	}
+
+	raceInfo = factory.getRaceInfo(converter);
+	
+	return raceInfo;
+}
+
