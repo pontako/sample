@@ -1,0 +1,272 @@
+package com.example.packet;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+
+public class PacketConverter {
+
+    /* ------------------------------------------------------ */
+    // パケットフォーマットID定義
+    /* ------------------------------------------------------ */
+    public static final int FORMAT_ID_RACEINFO_LESSON = 1;
+    public static final int FORMAT_ID_RACEINFO_FREERUN = 2;
+    public static final int FORMAT_ID_RACEINFO_CLUB = 3;
+
+    /* ------------------------------------------------------ */
+    // パケットデータ型定義
+    /* ------------------------------------------------------ */
+    private static final int DATA_TYPE_INTEGER = 1;
+    private static final int DATA_TYPE_STRING = 2;
+
+    /* ------------------------------------------------------ */
+    // パケットデータ種別enum定義
+    /* ------------------------------------------------------ */
+    enum PacketDataType {
+
+        /**
+         * データフォーマットID
+         */
+        FORMAT_ID(DATA_TYPE_INTEGER),
+        /**
+         * レース種別
+         */
+        RACE_TYPE(DATA_TYPE_INTEGER),
+        /**
+         * 授業日時
+         */
+        LESSON_DATE(DATA_TYPE_INTEGER),
+        /**
+         * タイトル
+         */
+        TITLE(DATA_TYPE_STRING);
+
+        /**
+         * データ型
+         */
+        private int dataType;
+        private PacketDataType(int dataType) {
+            this.dataType = dataType;
+        }
+
+        public int getDataType() {
+            return dataType;
+        }
+    }
+
+    /* ------------------------------------------------------ */
+    // privateフィールド定義
+    /* ------------------------------------------------------ */
+    private int mFormatId;
+    /**
+     * パケットデータ格納用マップ
+     */
+    private LinkedHashMap<PacketDataType, List<Object>> mPacketDataMap = 
+        new LinkedHashMap<PacketDataType, List<Object>>();
+
+    /* ------------------------------------------------------ */
+    // コンストラクタ定義
+    /* ------------------------------------------------------ */
+    /**
+     * コンストラクタ(byte配列に変換する際に使用する)
+     * 
+     * @param formatId フォーマットID
+     */
+    public PacketConverter(int formatId) {
+        mFormatId = formatId;
+        putInt(PacketDataType.FORMAT_ID, formatId);
+    }
+
+    /**
+     * コンストラクタ(byte配列から復元時に使用する)
+     * 
+     * @param bytes byte配列
+     */
+    public PacketConverter(byte[] bytes) {
+        if (bytes == null ) {
+            
+        }
+//        purse();
+    }
+
+    /* ------------------------------------------------------ */
+    // publicメソッド定義
+    /* ------------------------------------------------------ */
+    /**
+     * int型のパケットデータを追加する
+     * 
+     * @param packetType パケットデータ種別
+     * @param value 値
+     */
+    public void putInt(PacketDataType packetType, int value) {
+        put(packetType, DATA_TYPE_INTEGER, new Integer(value));
+    }
+
+    /**
+     * String型のパケットデータを追加する
+     * 
+     * @param packetType パケットデータ種別
+     * @param value 値
+     */
+    public void putString(PacketDataType packetType, String value) {
+        put(packetType, DATA_TYPE_STRING, value);
+    }
+
+    /**
+     * int型のパケットデータを取得する
+     * 
+     * <pre>
+     * 同一パケットデータ種別で複数のデータが存在する場合は、
+     * 先頭のデータを返す
+     * </pre>
+     * 
+     * @param packetType パケットデータ種別
+     * @return int型のパケットデータ
+     */
+    public int getInt(PacketDataType packetType) {
+        Object obj = get(packetType, DATA_TYPE_INTEGER);
+        return (Integer)(obj);
+    }
+
+    /**
+     * String型のパケットデータを取得する
+     * 
+     * <pre>
+     * 同一パケットデータ種別で複数のデータが存在する場合は、
+     * 先頭のデータを返す
+     * </pre>
+     * 
+     * @param packetType パケットデータ種別
+     * @return String型のパケットデータ
+     */
+    public String getString(PacketDataType packetType) {
+        Object obj = get(packetType, DATA_TYPE_STRING);
+        return (String)(obj);
+    }
+
+    /**
+     * int型のパケットデータリストを取得する
+     * 
+     * <pre>
+     * 同一パケットデータ種別で複数のデータが存在する場合に、
+     * 使用する
+     * </pre>
+     * 
+     * @param packetType パケットデータ種別
+     * @return int型のパケットデータリスト
+     */
+    public int[] getIntArray(PacketDataType packetType) {
+        if (packetType.getDataType() != DATA_TYPE_INTEGER) {
+            throw new RuntimeException("invalid data type");
+        }
+        
+        List<Object> list = mPacketDataMap.get(packetType);
+        if ((list == null) || (list.size() <= 0)) {
+            throw new RuntimeException("failed to get packetData");
+        }
+        
+        int[] intArray = new int[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            int value = (Integer)list.get(i);
+            intArray[i] = value;
+        }
+        
+        return intArray;
+    }
+
+    /**
+     * String型のパケットデータリストを取得する
+     * 
+     * <pre>
+     * 同一パケットデータ種別で複数のデータが存在する場合に、
+     * 使用する
+     * </pre>
+     * 
+     * @param packetType パケットデータ種別
+     * @return String型のパケットデータリスト
+     */
+    public String[] getStringArray(PacketDataType packetType) {
+        if (packetType.getDataType() != DATA_TYPE_STRING) {
+            throw new RuntimeException("invalid data type");
+        }
+        
+        List<Object> list = mPacketDataMap.get(packetType);
+        if ((list == null) || (list.size() <= 0)) {
+            throw new RuntimeException("failed to get packetData");
+        }
+        
+        String[] intArray = new String[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            String value = (String)list.get(i);
+            intArray[i] = value;
+        }
+        
+        return intArray;
+    }
+
+    /**
+     * データフォーマットIDを返す
+     * 
+     * @return データフォーマットID
+     */
+    public int getFormatId() {
+        return mFormatId;
+    }
+
+    /**
+     * byte配列を取得する
+     * 
+     * @return byte配列
+     */
+    public byte[] getByteArray() {
+        byte[] ret = null;
+
+        return ret;
+    }
+
+    /* ------------------------------------------------------ */
+    // privateメソッド定義
+    /* ------------------------------------------------------ */
+    /**
+     * パケットデータを追加する
+     * 
+     * @param packetType パケットデータ種別
+     * @param dataType パケットデータ型
+     * @param value 値
+     */
+    private void put(PacketDataType packetType, int dataType, Object value) {
+        if (packetType.getDataType() != dataType) {
+            throw new RuntimeException("invalid data type");
+        }
+        if (value == null) {
+            throw new RuntimeException("invalid value");
+        }
+        List<Object> list = mPacketDataMap.get(packetType);
+        if (list == null) {
+            list = new ArrayList<Object>();
+        }
+        list.add(value);
+        mPacketDataMap.put(packetType, list);
+    }
+
+    /**
+     * パケットデータを取得する
+     * 
+     * @param packetType パケットデータ種別
+     * @param dataType パケットデータ型
+     * @return パケットデータ
+     */
+    private Object get(PacketDataType packetType, int dataType) {
+        if (packetType.getDataType() != dataType) {
+            throw new RuntimeException("invalid data type");
+        }
+
+        List<Object> list = mPacketDataMap.get(packetType);
+        if ((list == null) || (list.size() <= 0)) {
+            throw new RuntimeException("failed to get packetData");
+        }
+
+        return list.get(0);
+    }
+}
