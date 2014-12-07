@@ -3,6 +3,7 @@ package com.example.packet;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,6 +49,10 @@ public class PacketConverter {
          */
         LESSON_DATE(DataType.TYPE_INTEGER),
         /**
+         * 授業クラス
+         */
+        LESSON_CLASS(DataType.TYPE_STRING),
+        /**
          * タイトル
          */
         TITLE(DataType.TYPE_STRING);
@@ -65,6 +70,16 @@ public class PacketConverter {
             return dataType;
         }
 
+        public static PacketData fromOrdinal(int ordinal) {
+            PacketData[] packetDatas = values();
+            for (PacketData packetData : packetDatas) {
+                if (packetData.ordinal() == ordinal) {
+                    return packetData;
+                }
+            }
+            return null;
+        }
+        
         public byte[] createByteArray(Object obj) {
             byte[] byteArray = null;
             byte[] baseArray = null;
@@ -160,10 +175,10 @@ public class PacketConverter {
      * @param bytes byte配列
      */
     public PacketConverter(byte[] bytes) {
-        if (bytes == null ) {
-            
+        if (bytes == null) {
+            throw new RuntimeException("bytes == null");
         }
-//        purse();
+        putPacketData(bytes);
     }
 
     /* ------------------------------------------------------ */
@@ -375,4 +390,95 @@ public class PacketConverter {
         return list.get(0);
     }
 
+    /**
+     * byte配列からパケットデータを生成する
+     * 
+     * @param bytes byte配列
+     */
+    private void putPacketData(byte[] bytes) {
+//        パケットデータフォーマット
+//        4byte, 4byte,   *byte(可変)
+//       [id,    length,  data]
+
+        System.out.println("---------------->start parse");
+        int currentIndex = 0;
+        while (currentIndex < bytes.length) {
+            // データ種別を取得.
+            int dataIdStartIndex = currentIndex;
+            PacketData packetType = getPacketData(bytes, dataIdStartIndex);
+
+            // データ長を取得.
+            int dataLengthStartIndex = dataIdStartIndex + PACKET_DATA_ID_BYTE_SIZE;
+            int dataLength = getPacketDataLength(bytes, dataLengthStartIndex);
+
+            // データを追加.
+            int dataStartIndex = dataLengthStartIndex + PACKET_DATA_LENGTH_BYTE_SIZE;
+            putPacketData(bytes, dataStartIndex, dataLength, packetType);
+
+            // インデックスを加算.
+            currentIndex += PACKET_DATA_ID_BYTE_SIZE
+                    + PACKET_DATA_LENGTH_BYTE_SIZE + dataLength;
+        }
+    }
+
+    /**
+     * パケットデータを取得する
+     * 
+     * @param bytes byte配列
+     * @param start 開始インデックス
+     * @return パケットデータ
+     */
+    private PacketData getPacketData(byte[] bytes, int start) {
+        int end = start + PACKET_DATA_ID_BYTE_SIZE;
+        byte[] dataIdBytes = Arrays.copyOfRange(bytes, start, end);
+        ByteBuffer buf = ByteBuffer.wrap(dataIdBytes);
+        int dataId = buf.getInt();
+        return PacketData.fromOrdinal(dataId);
+    }
+
+    /**
+     * パケットデータ長を取得する
+     * 
+     * @param bytes byte配列
+     * @param start 開始インデックス
+     * @return パケットデータ長
+     */
+    private int getPacketDataLength(byte[] bytes, int start) {
+        int end = start + PACKET_DATA_ID_BYTE_SIZE;
+        byte[] dataLengthBytes = Arrays.copyOfRange(bytes, start, end);
+        ByteBuffer buf = ByteBuffer.wrap(dataLengthBytes);
+        int dataLength = buf.getInt();
+        return dataLength;
+    }
+
+    /**
+     * パケットデータを追加する
+     * 
+     * @param bytes byte配列
+     * @param start 開始インデックス
+     * @param dataLength データ長
+     * @param packetType パケットデータ
+     */
+    private void putPacketData(byte[] bytes, int start, int dataLength,
+            PacketData packetType) {
+        int end = start + dataLength;
+        byte[] dataBytes = Arrays.copyOfRange(bytes, start, end);
+        
+        DataType dataType = packetType.getDataType();
+        if (dataType == DataType.TYPE_INTEGER) {
+            ByteBuffer buf = ByteBuffer.wrap(dataBytes);
+            int data = buf.getInt();
+            putInt(packetType, data);
+            System.out.println("packetType:" + packetType + " value:" + data);
+        } else if (dataType == DataType.TYPE_STRING) {
+            String str = null;
+            try {
+                str = new String(dataBytes, STRING_ENCODING);
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+            putString(packetType, str);
+            System.out.println("packetType:" + packetType + " value:" + str);
+        }
+    }
 }
