@@ -1,69 +1,145 @@
 package com.example.packet;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 public class PacketConverter {
 
-    /* ------------------------------------------------------ */
-    // パケットフォーマットID定義
-    /* ------------------------------------------------------ */
-    public static final int FORMAT_ID_RACEINFO_LESSON = 1;
-    public static final int FORMAT_ID_RACEINFO_FREERUN = 2;
-    public static final int FORMAT_ID_RACEINFO_CLUB = 3;
+    /**
+     * パケットデータID定義
+     *
+     */
+    public enum DataId {
+        ID_RACEINFO_LESSON,
+        ID_RACEINFO_FREERUN,
+        ID_RACEINFO_CLUB;
+    }
+    
+    /**
+     * パケットデータ型定義
+     *
+     */
+    public enum DataType {
+        TYPE_INTEGER,
+        TYPE_STRING;
+    }
 
-    /* ------------------------------------------------------ */
-    // パケットデータ型定義
-    /* ------------------------------------------------------ */
-    private static final int DATA_TYPE_INTEGER = 1;
-    private static final int DATA_TYPE_STRING = 2;
-
-    /* ------------------------------------------------------ */
-    // パケットデータ種別enum定義
-    /* ------------------------------------------------------ */
-    enum PacketDataType {
+    /**
+     * パケットデータenum定義
+     *
+     */
+    public enum PacketData {
 
         /**
-         * データフォーマットID
+         * データID
          */
-        FORMAT_ID(DATA_TYPE_INTEGER),
+        DATA_ID(DataType.TYPE_INTEGER),
         /**
          * レース種別
          */
-        RACE_TYPE(DATA_TYPE_INTEGER),
+        RACE_TYPE(DataType.TYPE_INTEGER),
         /**
          * 授業日時
          */
-        LESSON_DATE(DATA_TYPE_INTEGER),
+        LESSON_DATE(DataType.TYPE_INTEGER),
         /**
          * タイトル
          */
-        TITLE(DATA_TYPE_STRING);
+        TITLE(DataType.TYPE_STRING);
 
         /**
          * データ型
          */
-        private int dataType;
-        private PacketDataType(int dataType) {
+        private DataType dataType;
+        
+        private PacketData(DataType dataType) {
             this.dataType = dataType;
         }
 
-        public int getDataType() {
+        public DataType getDataType() {
             return dataType;
+        }
+
+        public byte[] createByteArray(Object obj) {
+            byte[] byteArray = null;
+            byte[] baseArray = null;
+
+            DataType dataType = getDataType();
+            if (dataType == DataType.TYPE_INTEGER) {
+                baseArray = getBaseByteArray(INTEGER_BYTE_SIZE);
+                ByteBuffer bb = ByteBuffer.allocate(baseArray.length + INTEGER_BYTE_SIZE);
+                bb.put(baseArray);
+                bb.putInt((Integer)(obj));
+                byteArray = bb.array();
+            } else if (dataType == DataType.TYPE_STRING) {
+                String str = (String)obj;
+                try {
+                    byte[] dataArray = str.getBytes(STRING_ENCODING);
+                    baseArray = getBaseByteArray(dataArray.length);
+                    ByteBuffer bb = ByteBuffer.allocate(baseArray.length + dataArray.length);
+                    bb.put(baseArray);
+                    bb.put(dataArray);
+                    byteArray = bb.array();
+                } catch (UnsupportedEncodingException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+
+            return byteArray;
+        }
+
+        /**
+         * ベース部(パケットデータIDとパケットデータ長)のbyte配列を返す
+         * 
+         * @param dataSize パケットデータサイズ(ベース部以外のデータサイズ)
+         * @return ベース部のbyte配列
+         */
+        private byte[] getBaseByteArray(int dataSize) {
+            ByteBuffer bb = ByteBuffer.allocate(
+                    PACKET_DATA_ID_BYTE_SIZE + PACKET_DATA_LENGTH_BYTE_SIZE);
+            bb.putInt(ordinal());
+            bb.putInt(dataSize);
+            return bb.array();
         }
     }
 
+    /**
+     * String型データのエンコーディング
+     */
+    private static final String STRING_ENCODING = "UTF-8";
+
+    /**
+     * int型のbyteサイズ
+     */
+    private static final int INTEGER_BYTE_SIZE = Integer.SIZE / Byte.SIZE;
+
+    /**
+     * パケットデータIDのbyteサイズ
+     */
+    private static final int PACKET_DATA_ID_BYTE_SIZE = INTEGER_BYTE_SIZE;
+    
+    /**
+     * パケットデータ長のbyteサイズ
+     */
+    private static final int PACKET_DATA_LENGTH_BYTE_SIZE = INTEGER_BYTE_SIZE;
+
+    
     /* ------------------------------------------------------ */
     // privateフィールド定義
     /* ------------------------------------------------------ */
-    private int mFormatId;
+    private DataId mDataId;
+
     /**
      * パケットデータ格納用マップ
      */
-    private LinkedHashMap<PacketDataType, List<Object>> mPacketDataMap = 
-        new LinkedHashMap<PacketDataType, List<Object>>();
+    private LinkedHashMap<PacketData, List<Object>> mPacketDataMap = 
+        new LinkedHashMap<PacketData, List<Object>>();
 
     /* ------------------------------------------------------ */
     // コンストラクタ定義
@@ -71,11 +147,11 @@ public class PacketConverter {
     /**
      * コンストラクタ(byte配列に変換する際に使用する)
      * 
-     * @param formatId フォーマットID
+     * @param dataId データID
      */
-    public PacketConverter(int formatId) {
-        mFormatId = formatId;
-        putInt(PacketDataType.FORMAT_ID, formatId);
+    public PacketConverter(DataId dataId) {
+        mDataId = dataId;
+        putInt(PacketData.DATA_ID, dataId.ordinal());
     }
 
     /**
@@ -99,8 +175,8 @@ public class PacketConverter {
      * @param packetType パケットデータ種別
      * @param value 値
      */
-    public void putInt(PacketDataType packetType, int value) {
-        put(packetType, DATA_TYPE_INTEGER, new Integer(value));
+    public void putInt(PacketData packetType, int value) {
+        put(packetType, DataType.TYPE_INTEGER, new Integer(value));
     }
 
     /**
@@ -109,8 +185,8 @@ public class PacketConverter {
      * @param packetType パケットデータ種別
      * @param value 値
      */
-    public void putString(PacketDataType packetType, String value) {
-        put(packetType, DATA_TYPE_STRING, value);
+    public void putString(PacketData packetType, String value) {
+        put(packetType, DataType.TYPE_STRING, value);
     }
 
     /**
@@ -124,8 +200,8 @@ public class PacketConverter {
      * @param packetType パケットデータ種別
      * @return int型のパケットデータ
      */
-    public int getInt(PacketDataType packetType) {
-        Object obj = get(packetType, DATA_TYPE_INTEGER);
+    public int getInt(PacketData packetType) {
+        Object obj = get(packetType, DataType.TYPE_INTEGER);
         return (Integer)(obj);
     }
 
@@ -140,8 +216,8 @@ public class PacketConverter {
      * @param packetType パケットデータ種別
      * @return String型のパケットデータ
      */
-    public String getString(PacketDataType packetType) {
-        Object obj = get(packetType, DATA_TYPE_STRING);
+    public String getString(PacketData packetType) {
+        Object obj = get(packetType, DataType.TYPE_STRING);
         return (String)(obj);
     }
 
@@ -156,8 +232,8 @@ public class PacketConverter {
      * @param packetType パケットデータ種別
      * @return int型のパケットデータリスト
      */
-    public int[] getIntArray(PacketDataType packetType) {
-        if (packetType.getDataType() != DATA_TYPE_INTEGER) {
+    public int[] getIntArray(PacketData packetType) {
+        if (packetType.getDataType() != DataType.TYPE_INTEGER) {
             throw new RuntimeException("invalid data type");
         }
         
@@ -186,8 +262,8 @@ public class PacketConverter {
      * @param packetType パケットデータ種別
      * @return String型のパケットデータリスト
      */
-    public String[] getStringArray(PacketDataType packetType) {
-        if (packetType.getDataType() != DATA_TYPE_STRING) {
+    public String[] getStringArray(PacketData packetType) {
+        if (packetType.getDataType() != DataType.TYPE_STRING) {
             throw new RuntimeException("invalid data type");
         }
         
@@ -196,22 +272,22 @@ public class PacketConverter {
             throw new RuntimeException("failed to get packetData");
         }
         
-        String[] intArray = new String[list.size()];
+        String[] stringArray = new String[list.size()];
         for (int i = 0; i < list.size(); i++) {
             String value = (String)list.get(i);
-            intArray[i] = value;
+            stringArray[i] = value;
         }
         
-        return intArray;
+        return stringArray;
     }
 
     /**
-     * データフォーマットIDを返す
+     * データIDを返す
      * 
-     * @return データフォーマットID
+     * @return データID
      */
-    public int getFormatId() {
-        return mFormatId;
+    public DataId getDataId() {
+        return mDataId;
     }
 
     /**
@@ -220,9 +296,38 @@ public class PacketConverter {
      * @return byte配列
      */
     public byte[] getByteArray() {
-        byte[] ret = null;
+        byte[] byteArray = null;
+        List<byte[]> bytes = new ArrayList<byte[]>();
+        int byteArrayLength = 0;
 
-        return ret;
+        Iterator<Entry<PacketData, List<Object>>> it = 
+            mPacketDataMap.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<PacketData, List<Object>> entry = it.next();
+            PacketData packetType = entry.getKey();
+            List<Object> list = entry.getValue();
+            for (Object obj : list) {
+                byte[] oneData = packetType.createByteArray(obj);
+                bytes.add(oneData);
+                byteArrayLength += oneData.length;
+                System.out.println("--->packetType:" + packetType);
+                for (byte b : oneData) {
+                    System.out.println("byte:" + String.format("%02X", b));
+                }
+            }
+            
+        }
+
+        if (bytes != null) {
+            ByteBuffer bb = ByteBuffer.allocate(byteArrayLength);
+            for (byte[] b : bytes) {
+                bb.put(b);
+            }
+            byteArray = bb.array();
+        }
+
+        
+        return byteArray;
     }
 
     /* ------------------------------------------------------ */
@@ -235,7 +340,7 @@ public class PacketConverter {
      * @param dataType パケットデータ型
      * @param value 値
      */
-    private void put(PacketDataType packetType, int dataType, Object value) {
+    private void put(PacketData packetType, DataType dataType, Object value) {
         if (packetType.getDataType() != dataType) {
             throw new RuntimeException("invalid data type");
         }
@@ -257,7 +362,7 @@ public class PacketConverter {
      * @param dataType パケットデータ型
      * @return パケットデータ
      */
-    private Object get(PacketDataType packetType, int dataType) {
+    private Object get(PacketData packetType, DataType dataType) {
         if (packetType.getDataType() != dataType) {
             throw new RuntimeException("invalid data type");
         }
@@ -269,4 +374,5 @@ public class PacketConverter {
 
         return list.get(0);
     }
+
 }
