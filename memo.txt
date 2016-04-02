@@ -1,0 +1,34 @@
+1.install
+fluxbox
+screen
+vim
+xcompmgr
+cairo-dock
+gnome-control-center
+
+java(openjdk-7-jdk)
+
+dropbox
+ https://www.dropbox.com/install?os=lnx
+
+eclipse
+ sudo apt-get install lib32stdc++6
+ sudo apt-get install lib32z1
+
+2.copy rc file to home directory
+
+3.mod fstab 
+ mkdir /media/ponta/windows_disk/
+ add external harddisk file systemc
+
+4 create swap if needed
+sudo dd if=/dev/zero of=/media/ponta/windows_disk/n/swapfile bs=1M count=4096 &&
+sudo chmod 600 /media/ponta/windows_disk/n/swapfile &&
+sudo mkswap /media/ponta/windows_disk/n/swapfile &&
+echo /media/ponta/windows_disk/n/swapfile none swap defaults 0 0 | sudo tee -a /etc/fstab &&
+sudo swapon -a
+
+5.printer
+sudo apt-get install printer-driver-escpr
+gnome-control-center
+add printer
