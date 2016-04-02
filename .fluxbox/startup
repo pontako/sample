@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# fluxbox startup-script:
+#
+# Lines starting with a '#' are ignored.
+
+# Change your keymap:
+xmodmap "/home/ponta/.Xmodmap"
+
+# Applications you want to run with fluxbox.
+# MAKE SURE THAT APPS THAT KEEP RUNNING HAVE AN ''&'' AT THE END.
+#fbsetbg -a ~/.fluxbox/backgrounds/bg_03.jpg && cairo-dock -o &
+#fbsetbg -f ~/.fluxbox/backgrounds/bg_03.jpg
+#xcompmgr -c &
+#gnome-terminal &
+#cairo-dock -o &
+
+# unclutter -idle 2 &
+# wmnd &
+# wmsmixer -w &
+# idesk &
+#
+# Debian-local change:
+#   - fbautostart has been added with a quick hack to check to see if it
+#     exists. If it does, we'll start it up by default.
+which fbautostart > /dev/null
+if [ $? -eq 0 ]; then
+    fbautostart
+fi
+
+# And last but not least we start fluxbox.
+# Because it is the last app you have to run it with ''exec'' before it.
+
+#exec fluxbox
+exec fluxbox &
+fbpid=$!
+sleep 2 
+{
+gnome-terminal &
+#kterm -title Terminal &
+xcompmgr -c &
+cairo-dock -o &
+} &
+wait $fbpid
+
+# or if you want to keep a log:
+# exec fluxbox -log "/home/ponta/.fluxbox/log"

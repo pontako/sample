@@ -1,0 +1,13 @@
+[app] (name=fbrun)
+  [Position]	(CENTER)	{0 0}
+  [Layer]	{2}
+[end]
+[app] (name=kterm)
+  [Alpha]	{150}
+[end]
+[app] (name=cairo-dock)
+  [Alpha]	{255}
+[end]
+[app] (name=gnome-terminal) (class=Gnome-terminal) (role=gnome-terminal-window-24351-486645610-1400410653)
+  [Alpha]	{150}
+[end]
