@@ -1,0 +1,29 @@
+lollipop_Contacts_on_eclipse
+ContactsCommon
+PhoneCommonが必要
+
+1.PhoneCommon
+class_jar(framework.jar, android-common.jar)追加でビルドok
+
+2.ContactsCommon
+buildPathにPhoneCommonのプロジェクトを追加
+LOCAL_STATIC_JAVA_LIBRARIES := \
+    com.android.vcard \
+    guava \
+    android-common \
+    android-support-v13 \
+    android-support-v4 \　★v13のみでOK
+    libphonenumber \ ★libsフォルダにあるので不要
+    libgeocoding　★libsフォルダにあるので不要
+も追加
+class_jar(framework.jar, android-common.jar)追加
+
+3.Contacts
+buildPathにContactsCommon,honeCommonのプロジェクトを追加
+class_jar(framework.jar, android-common.jar)追加
+
+contactsCommonのリソース参照解決が必要★
+→contactsCommonをライブラリプロジェクトでビルド
+　switchをctrl+1でif-elseに変更
+
+core-libart、telephony-commonのjarをビルドパスに追加
