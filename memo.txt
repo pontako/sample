@@ -32,3 +32,4 @@ sudo swapon -a
 sudo apt-get install printer-driver-escpr
 gnome-control-center
 add printer
+
